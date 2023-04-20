@@ -95,7 +95,7 @@ int der(double eta, const double *y, double *dy, void *par){
       compute_Xi_nu(alpha,eta,0,y,*C,Xi_nu_k0[alpha]);
   
     //decide whether or not to compute expensive cb mode-couplings    
-    int recompute_Acb = 0;
+    int recompute_Acb = 1;
 
     if(C->initAggcb==0){
       printf("ERROR: der: CB mode-coupling integral not allocated.\n");
