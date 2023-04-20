@@ -1,0 +1,102 @@
+# ==============================================================================
+# ============== Parameter file for FlowsForTheMasses computation ==============
+# ==============================================================================
+# 
+# (Lines beginning with a '#' are ignored by the code.  Parameters must be 
+# listed in the following order: 
+#   n_s  
+#   sigma_8  
+#   h  
+#   Omega_m  
+#   Omega_b  
+#   Omega_nu
+#   T_cmb[Kelvins]  
+#   w_0  
+#   w_a  
+#   switch_nonlinear  
+#   switch_Nmunl  
+#   switch_print
+#   switch_transfer_type
+#   z_initial
+#   num_z_outputs
+#   z_out_1 z_out_2 ... z_out_{num_z_outputs}
+#   file_transfer_function
+#   num_massive_nu_approx
+# where parameters beginning with "switch" or "num" are integers, 
+# and those beginning with "file" are character strings.)
+#
+# -------------------------- cosmologial parameters ----------------------------
+#
+# n_s: scalar spectral index
+0.9665
+
+# sigma_8: z=0 normalization of linear power spectrum
+0.7139
+
+# h: Hubble parameter today, H_0 / (100 km/sec/Mpc)
+0.6766
+
+# Omega_m: total matter fraction today (cdm, baryons, massive nu)
+0.309641441545506
+
+# Omega_b: baryon fraction today
+0.0489746816186967
+
+# Omega_nu: massive neutrino fraction today (0 if massless)
+0.0109220967035452
+
+# T_cmb_K: CMB temperature today, in units of Kelvins
+2.7255
+
+# w0: dark energy equation of state today
+-1.0
+
+# wa: derivative -dw/da in CPL parameterization
+0.0
+
+# ----------------------------- code switches ----------------------------------
+#
+# switch_nonlinear
+# nonlinear computation: 0 for linear, 1 for nonlinear cb, 2 for nonlinear cb+nu
+2
+
+# switch_Nmunl
+# N_{\mu,NL}: number of angular modes passed to mode-coupling integrals
+3
+
+# switch_print
+# print results:
+#   0: print growth factor D, growth rate f, and total nu growth
+#   1: print linear and nonlinear cb power and total nu power
+#   2: print dd, dt, tt monopole powers for cb(lin), cb(nl) and all nu fluids
+#   3: print all nu and cb perturbations
+3
+
+# switch_transfer_type
+# transfer function format:
+#   0: modern CAMB 13-column format (k, CDM, baryon, photon, massless-nu, 
+#      massive-nu, matter, cold-matter, dark-energy, Weyl, v_CDM, v_b, v_b-v_c)
+#   1: old-style CAMB 7-column format, including only the first 7 columns above;
+#      this includes CLASS outputs with the format=camb option.
+0
+
+# -------------------------------- outputs -------------------------------------
+#
+# initial redshift
+200
+
+# number of redshifts at which to print results
+5
+
+# redshifts of outputs (arranged from greatest to least)
+3 2 1 0.5 0
+
+# ---------------------------- transfer inputs ---------------------------------
+#
+# Transfer function at z=0, in CAMB standard format (13 columns)
+nu05_transfer_z0.dat
+
+# Massive neutrino approx: 0 for CAMB interp. (not used by FlowsForTheMasses)
+#                          1 for multi-fluid perturbation theory 
+1
+

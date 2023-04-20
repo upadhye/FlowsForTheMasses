@@ -1,0 +1,160 @@
+FlowsForTheMasses
+
+Non-linear multi-flow cosmological perturbation theory for massive neutrinos, 
+described in Chen, Upadhye, and Wong, https://arxiv.org/abs/2210.16020 .  
+
+--------------------------------------------------------------------------------
+
+FlowsForTheMasses version 1.0
+
+================================================================================
+
+Installation:
+
+FlowsForTheMasses relies on the GNU Scientific Library (GSL), available at 
+https://www.gnu.org/software/gsl/ .  Once this has been installed, edit the 
+PATHS variable in Makefile to include the locations of the GSL headers and 
+libraries.  Then compile FlowsForTheMasses using 'make' from the command prompt.
+
+Parallelization in FlowsForTheMasses uses OpenMP.  The code may be compiled 
+without parallelization by deleting the "-fopenmp" flag in the Makefile.
+
+================================================================================
+
+Running:
+
+FlowsForTheMasses is run directly from the command prompt.  It requires:
+
+  1.  an input parameter file listing the cosmological parameters and 
+      code inputs, as detailed in the comments to the example file
+      sample_params_FlowsForTheMasses.dat , and passed as an argument; 
+
+  2.  a transfer function at redshift 0, in the standard 13-column format 
+      produced by the CAMB code (https://camb.info), and named as specified
+      in the parameter file.
+
+A parameter file sample_params_FlowsForTheMasses.dat and the corresponding CAMB 
+transfer function file nu05_transfer_z0.dat are included with the code.  Note
+that parameters must appear in the order specified in this sample parameter
+file; lines beginning with a pound character (#) are ignored by the code.
+
+A bash shell script runAll has been provided for generating input parameter 
+files for CAMB and FlowsForTheMasses, then running both.  Variables beginning 
+USER_ are specified by the user in the user-defined parameter section.
+
+Note that older versions of CAMB, as well as CLASS with the format=camb option,
+produce 7-column transfer files.  FlowsForTheMasses will accept these if 
+switch_transfer_type is set to 1 in the parameter file.
+
+================================================================================
+
+Printing results:
+
+FlowsForTheMasses outputs are governed by switch_print in the parameter file.
+Values 0, 1, 2, and 3 refer, respectively, to the functions print_all_growth ,
+print_all_Pcblin_Pcbnl_Pnutot , print_all_Pmono , and print_all in the file
+AU_cosmofunc.h and produce the following outputs:
+
+  0: print_all_growth prints the CDM+baryon growth factor D, its logarithic 
+     derivative f = dln(D)/dln(a), and the total neutrino density monopole;
+
+  1: print_all_Pcblin_Pcbnl_Pnutot prints the linear CDM+baryon power, the 
+     non-linear CDM+baryon power, and the total neutrino monopole power; 
+
+  2: print_all_Pmono prints linear CDM+baryon power, the non-linear CDM+baryon 
+     power, and the neutrino power for each fluid individually;
+
+  3: print_all prints all Legendre moments of all neutrino perturbations and 
+     bispectrum integrals, followed by the linear and non-linear CDM+baryon 
+     perturbations and the Time-RG bispectrum integrals.
+
+================================================================================
+
+Setting the numbers of flows and angular modes:
+
+FlowsForTheMasses bins the distribution function into N_TAU equal-density flows,
+each characterized by a single momentum magnitude tau.  Dependence upon the 
+angle between the momentum and the Fourier vector is expanded in N_MU Legendre 
+moments.  Both N_TAU and N_MU are specified at compile time through preprocessor
+#define statements in AU_cosmoparam.h .
+
+Since the computational cost of non-linear neutrino mode-coupling integrals
+scales as the sixth power of the number of angular modes, FlowsForTheMasses 
+allows the number of modes passed to these integrals to be set separately
+at runtime through switch_Nmunl in the parameter file.
+
+================================================================================
+
+Stability threshold kThr:
+
+As detailed in https://arxiv.org/abs/2210.16020 , increasing switch_Nmunl leads
+to increasingly severe numerical instabilities.  When such instabilities cause
+FlowsForTheMasses to reduce the step size below the minimum PARAM_DETA_MIN 
+specified in FlowsForTheMasses.cc , the code discards the highest k value and
+resumes integration.  The stability threshold kThr is the maximum k value for
+which integration continues.  Each time the derivative function der is called
+with kThr less than the maximum wave number KMAX it prints the kThr value.
+Behavior of the neutrino perturbations for k > kThr is ill-defined and 
+discontinuous.  
+
+================================================================================
+
+Tuning code performance:
+
+The number NK of k values, and their minimum KMIN and maximum KMAX , are 
+specified in AU_fftgrid.h .  Since increasing NK worsens noise and exacerbates
+the numerical instabilities above, we recommend not raising NK much above 128.
+
+FlowsForTheMasses.cc contains several parameters, switches, and functions to 
+tune the code's performance:
+
+  PARAM_DETA0 is the default starting step size in eta = ln(a/a_in);
+
+  PARAM_DETA_MIN is the minimum step size in eta;
+
+  PARAM_EABS and PARAM_EREL are the absolute and relative error tolerance;
+
+  PARAM_D2NU_NL specifies the value of the dimensionless power spectrum 
+    k^3/(2*pi^2) P_{alpha}(k) at which to begin computing non-linear corrections
+    for neutrino flow alpha;
+
+  SWITCH_VERBOSITY ranges from 0-3 and specifies the verbosity of the code;
+
+  NZREC specifies the maximum number of redshift values at which to recompute 
+    the neutrino non-linear mode-coupling integrals;
+
+  f_A_nu(double k) smoothly suppresses the neutrino non-linear mode-coupling
+    integrals for k below k_A_lo and above k_A_hi .  
+
+================================================================================
+
+Examples:
+
+Sample run scripts and CAMB/FlowsForTheMasses parameter files are provided for 
+several LambdaCDM runs with fixed parameters h = 0.6766, n_s = 0.9665, 
+A_s = 2.135e-9, Omega_{m,0}h^2 = 0.14175, and Omega_{b,0}h^2 = 0.02242, with 
+only Omega_{nu,0}h^2 varying.
+
+  nu05 (Omega_{nu,0}h^2=0.005), switch_Nmunl=3:  This is the minimal recommended
+    value of switch_Nmunl.  The code runs without needing to reduce kThr due
+    to numerical instabilities.
+
+  nu05 (Omega_{nu,0}h^2=0.005), switch_Nmunl=3, switch_print=3:  Inputs are
+    similar to the above except that the full set of perturbations is printed 
+    out at z of 200 and 0.  Included gnuplot scripts (called as arguments to 
+    gnuplot) plot monopole (j=0) power spectra for all flows alpha, and alpha=0
+    power spectra for all j.  Also included are pdf figures produced using these
+    two gnuplot scripts. 
+
+  nu05 (Omega_{nu,0}h^2=0.005), switch_Nmunl=4:  Instabilities force the
+    reduction of kThr to 5.30163 h/Mpc, after which the code reaches z=0.
+
+  nu05 (Omega_{nu,0}h^2=0.005), switch_Nmunl=5:  Due to low-k noise, we have
+    raised k_A_lo to 0.05 h/Mpc.  Instabilities reduce kThr to 4.42251 h/Mpc.
+
+  nu05 (Omega_{nu,0}h^2=0.005), switch_Nmunl=6:  Due to low-k noise, we have
+    raised k_A_lo to 0.05 h/Mpc.  Instabilities reduce kThr to 4.03924 h/Mpc.
+
+  nu02 (Omega_{nu,0}h^2=0.002), switch_Nmunl=3:  The code runs to z=0 without
+    needing to lower kThr.
+ 

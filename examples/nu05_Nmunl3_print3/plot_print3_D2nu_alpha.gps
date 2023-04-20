@@ -1,0 +1,66 @@
+#file to plot: FlowsForTheMasses output with print option 3
+FFTM = "FlowsForTheMasses_nu05_Ntau10_Nmu10_Nmunl3.dat"
+
+#redshift list: non-linear initialization and requested outputs
+Z_LIST = " 200 0 "
+Z(I) = 1.0*word(Z_LIST, I+1)
+I0 = 1
+
+#k threshhold truncation
+KTHR = 100.0
+TK(x) = sqrt(KTHR-x) / sqrt(abs(KTHR-x))
+
+#array dimensions
+N_TAU = 10
+N_I = 14
+N_B = 10
+N_PI = 17
+N_MU = 10
+N_K = 128
+
+#functions to plot: t ranges from 0 to N_TAU-1; j from 0 to N_MU-1; 
+#f from 0 to 1 for psi_cb_lin, 0 to 2 for psi_nu and psi_cb; u from 0 to 13
+psi_nu(t,f,j) = column(2 + t*N_PI*N_MU + f*N_MU + j) 
+psi_cb_lin(f) = column(2 + N_TAU*N_PI*N_MU + f)  
+psi_cb(f)     = column(2 + N_TAU*N_PI*N_MU + 2+f) 
+I_nu(t,u,j)   = column(2 + t*N_PI*N_MU + (3+u)*N_MU + j) 
+I_cb(u)       = column(2 + N_TAU*N_PI*N_MU + 5 + u)
+D2_nu(t,f,j)  = column(1)**3/(2.0*pi**2) * psi_nu(t,f,j)**2
+D2_nu_all(f)  = column(1)**3/(2.0*pi**2) \
+		* (sum [t=0:N_TAU-1] psi_nu(t,f,0)/N_TAU)**2
+D2_cb_lin(f)  = column(1)**3/(2.0*pi**2) * psi_cb_lin(f)**2
+D2_cb(f)      = column(1)**3/(2.0*pi**2) * psi_cb(f)**2
+
+#plot controls
+set xlabel "wave number k"
+set logscale x
+set xrange [1e-3:10]
+
+set ylabel sprintf("dimensionless power {/NotoSerif-Symbol D^2}(k)")
+set logscale y
+set format y "10^{%T}"
+set ytics 10
+
+set cblabel "neutrino flow {/NotoSerif-Symbol a} (0-9)"
+set cbrange [0:9]
+
+#set palette rgbformulae 10,13,35
+set palette defined (0 "#ff0000",\
+                     1 "#ff851b",\
+                     1.5 "#ffdc00",\
+                     2 "#00ff00",\
+                     3 "#0000ff",\
+                     4 "#b10dc9")
+
+set key left Left reverse
+
+set terminal postscript eps enhanced color size 5,3 "NotoSerif,18'"
+set output sprintf("|ps2pdf -dEPSCrop - > D2nu_z%g_vary_alpha.pdf",Z(I0))
+
+#plot dimensionless power
+plot for [alpha=0:N_TAU-1] FFTM i I0 u 1:(D2_nu(alpha,0,0)*TK($1)):(alpha)\
+	 not sprintf("{/NotoSerif-Symbol a = %i}",alpha) w l lw 3 lt palette,\
+     FFTM i I0 u 1:(D2_nu_all(0)*TK($1)) \
+	t sprintf("{/NotoSerif-Symbol n} total") w l lw 5 lt -1,\
+     FFTM i I0 u 1:(D2_cb(0)*TK($1)) t "CB Time-RG" w l lw 2 lt 0
+

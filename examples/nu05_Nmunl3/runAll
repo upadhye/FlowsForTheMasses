@@ -1,0 +1,137 @@
+#!/bin/bash
+##
+##    Copyright 2023 Amol Upadhye
+##
+##    This file is part of FlowsFortheMasses.
+##
+##    FlowsFortheMasses is free software: you can redistribute
+##    it and/or modify it under the terms of the GNU General
+##    Public License as published by the Free Software
+##    Foundation, either version 3 of the License, or (at
+##    your option) any later version.
+##
+##    FlowsFortheMasses is distributed in the hope that it
+##    will be useful, but WITHOUT ANY WARRANTY; without
+##    even the implied warranty of MERCHANTABILITY or
+##    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+##    Public License for more details.
+##
+##    You should have received a copy of the GNU General
+##    Public License along with FlowsFortheMasses.  If not,
+##    see <http://www.gnu.org/licenses/>.
+##
+#####  This script runs camb and FlowsForTheMasses with
+#####  user-defined input parameters.
+##
+################################################################################
+#######################  Begin user-defined parameters  ########################
+################################################################################
+
+# directory containing camb and HighLExtrapTemplate_lenspotentialCls.dat
+USER_CAMB_EXEC=.
+
+# model name
+USER_MODELNAME=nu05
+
+# Omega_{m,0} h^2
+USER_OMH2=0.14175
+
+# Omega_{b,0} h^2
+USER_OBH2=0.02242
+
+# Omega_{nu,0} h^2
+USER_ONH2=0.005
+
+# sigma_8
+USER_SIG8=0.7139
+
+# reduced hubble parameter H_0 / (100 km/s/Mpc)
+USER_HRED=0.6766
+
+# scalar spectral index
+USER_NSCL=0.9665
+
+# dark energy equation of state w(z) = w_0 + z w_a / (1+z)
+USER_DEW0=-1.0
+USER_DEWA=0.0
+
+# non-linearity level of FlowsForTheMasses: 
+# 0 for linear; 1 for non-linear CDM, baryons; 2 for non-linear nu, CDM, baryons
+USER_FFTM_NL=2
+
+# number of angular modes used in neutrino non-linear mode-coupling integrals
+USER_FFTM_NMUNL=3
+
+# FlowsForTheMasses outputs:
+#   0: print growth factor D, growth rate f, and total nu growth
+#   1: print linear and nonlinear cb power and total nu power
+#   2: print dd, dt, tt monopole powers for cb(lin), cb(nl) and all nu fluids
+#   3: print all nu and cb perturbations
+USER_FFTM_PRINT=2
+
+# list of output redshifts from highest to lowest, passed as a string
+USER_FFTM_ZLIST="1 0.5 0"
+
+################################################################################
+########################  End user-defined parameters  #########################
+################################################################################
+
+##### Derived parameters
+DER_H100=$(echo "100 * ${USER_HRED}" | bc -l)
+DER_OCH2=$(echo "${USER_OMH2} - ${USER_OBH2} - ${USER_ONH2}" | bc -l)
+DER_OM=$(echo "${USER_OMH2} / ${USER_HRED} / ${USER_HRED}" | bc -l)
+DER_OB=$(echo "${USER_OBH2} / ${USER_HRED} / ${USER_HRED}" | bc -l)
+DER_ON=$(echo "${USER_ONH2} / ${USER_HRED} / ${USER_HRED}" | bc -l)
+DER_FFTM_NZ=$(echo ${USER_FFTM_ZLIST} | wc -w)
+DER_TFILE=${USER_MODELNAME}_transfer_z0.dat
+
+##### Create camb input ini file
+CAMB_INI_NAME=input_camb_${USER_MODELNAME}.ini
+cat camb1_template.ini \
+	| sed   -e s+CAMB_TEMPLATE_EXEC+${USER_CAMB_EXEC}+g \
+		-e s/CAMB_TEMPLATE_W0/${USER_DEW0}/g \
+                -e s/CAMB_TEMPLATE_WA/${USER_DEWA}/g \
+                -e s/CAMB_TEMPLATE_HUBBLE/${DER_H100}/g \
+                -e s/CAMB_TEMPLATE_OBH2/${USER_OBH2}/g \
+                -e s/CAMB_TEMPLATE_OCH2/${DER_OCH2}/g \
+                -e s/CAMB_TEMPLATE_ONH2/${USER_ONH2}/g \
+                -e s/CAMB_TEMPLATE_NS/${USER_NSCL}/g \
+                -e s/CAMB_TEMPLATE_MODELNAME/${USER_MODELNAME}/g \
+	> ${CAMB_INI_NAME}
+
+##### Run camb
+time ${USER_CAMB_EXEC}/camb ${CAMB_INI_NAME} > output_camb_${USER_MODELNAME}.ini
+
+##### Create FlowsForTheMasses parameters file
+FFTM_PARAM_NAME=input_FlowsForTheMasses_${USER_MODELNAME}.dat
+
+echo ${USER_NSCL} >  ${FFTM_PARAM_NAME}
+echo ${USER_SIG8} >> ${FFTM_PARAM_NAME}
+echo ${USER_HRED} >> ${FFTM_PARAM_NAME}
+echo ${DER_OM}    >> ${FFTM_PARAM_NAME}
+echo ${DER_OB}    >> ${FFTM_PARAM_NAME}
+echo ${DER_ON}    >> ${FFTM_PARAM_NAME}
+echo "2.7255"     >> ${FFTM_PARAM_NAME}
+echo ${USER_DEW0} >> ${FFTM_PARAM_NAME}
+echo ${USER_DEWA} >> ${FFTM_PARAM_NAME}
+
+echo ${USER_FFTM_NL}    >> ${FFTM_PARAM_NAME}
+echo ${USER_FFTM_NMUNL} >> ${FFTM_PARAM_NAME}
+echo ${USER_FFTM_PRINT} >> ${FFTM_PARAM_NAME}
+echo "0"                >> ${FFTM_PARAM_NAME}
+echo "200"              >> ${FFTM_PARAM_NAME}
+echo ${DER_FFTM_NZ}     >> ${FFTM_PARAM_NAME}
+echo ${USER_FFTM_ZLIST} >> ${FFTM_PARAM_NAME}
+echo ${DER_TFILE}       >> ${FFTM_PARAM_NAME}
+echo "1"                >> ${FFTM_PARAM_NAME}
+
+##### Run FlowsForTheMasses.
+N_TAU=$(grep N_TAU AU_cosmoparam.h | grep define | head -1 \
+	| sed -e s/"^.*("//g -e s/").*$"//g)
+N_MU=$(grep N_MU AU_cosmoparam.h | grep define | head -1 \
+        | sed -e s/"^.*("//g -e s/").*$"//g)
+FFTM_BASE=FlowsForTheMasses_${USER_MODELNAME}
+FFTM_OUTPUT=${FFTM_BASE}_Ntau${N_TAU}_Nmu${N_MU}_Nmunl${USER_FFTM_NMUNL}.dat
+
+time ./FlowsForTheMasses ${FFTM_PARAM_NAME} > ${FFTM_OUTPUT}
+
