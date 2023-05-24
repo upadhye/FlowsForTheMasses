@@ -81,6 +81,13 @@ int der(double eta, const double *y, double *dy, void *par){
   
   for(int ieq=0; ieq<N_EQ; ieq++) dy[ieq] = 0;
 
+  if(SWITCH_VERBOSITY>=3){
+    static int der_count = 0;
+    printf("#der: call %i: eta=%g, aeta=%g, ze=%g\n", 
+           der_count++, eta, aeta, ze);
+    fflush(stdout);
+  }
+
   //only follow NL terms up to k=kThr
   static double kThr = 1e100;
   if(iMaxNL<NK-1) kThr = KMIN*exp(DLNK*iMaxNL);
@@ -116,7 +123,7 @@ int der(double eta, const double *y, double *dy, void *par){
       C->initAggcb = 2;
     }
 
-    if(recompute_Acb && SWITCH_VERBOSITY>=3){
+    if(recompute_Acb && SWITCH_VERBOSITY>=4){
       printf("#der: Acb comp #%i; ze=%g; nonlin nu fluids: %i; D2nuMax=%e\n",
              counter_Acb++, ze, C->nAggnu, D2nuMax(0,0,y));
       fflush(stdout);
@@ -679,20 +686,18 @@ int main(int argn, char *args[]){
     evolve_to_z(zl[0],y,N_cb,&C);
     for(int iz=0; iz<C.num_z_outputs; iz++){
       evolve_step(zl[iz],zl[iz+1],y,&C,0);
-      for(int i=0; i<2*N_TAU*N_MU*NK + 19*NK; i++) yzn[iz*N_EQ+i] = y[i];
+      for(int i=0; i<N_EQ; i++) yzn[iz*N_EQ+i] = y[i];
     }
 
     if(zl[C.num_z_outputs] > 1e-9) evolve_step(zl[C.num_z_outputs],0,y,&C,0);
     for(int i=0; i<NK; i++){
-      double dU = C.f_cb_0*y[2*N_TAU*N_MU*NK+i] + C.f_nu_0*d_nu_mono(i,0,y);
+      double dU = C.f_cb_0*ycb0l(i,y) + C.f_nu_0*d_nu_mono(i,0,y);
       N_cb[i] *= sqrt(Pmat0(KMIN*exp(DLNK*i),C)) / dU;
     }
 
     for(int iz=0; iz<C.num_z_outputs; iz++){
       for(int ik=0; ik<NK; ik++){
-        for(int j=0; j<2*N_TAU*N_MU+2; j++) yzn[iz*N_EQ+j*NK+ik] *= N_cb[ik];
-        for(int j=2*N_TAU*N_MU+2; j<2*N_TAU*N_MU+5; j++)
-          yzn[iz*N_EQ+j*NK+ik] += 2.0*log(N_cb[ik]);
+        for(int j=0; j<N_EQ/NK; j++) yzn[iz*N_EQ+j*NK+ik] *= N_cb[ik];
       }
 
       printf("###main: output at z=%g\n",zl[iz+1]);
@@ -711,7 +716,7 @@ int main(int argn, char *args[]){
     for(int i=0; i<NK; i++) N_cb[i] = 1;
     evolve_to_z(0,y,N_cb,&C);
     for(int i=0; i<NK; i++){
-      double dU = C.f_cb_0*y[N_PI*N_TAU*N_MU*NK+i] + C.f_nu_0*d_nu_mono(i,0,y);
+      double dU = C.f_cb_0*ycb0l(i,y) + C.f_nu_0*d_nu_mono(i,0,y);
       N_cb[i] *= sqrt(Pmat0(KMIN*exp(DLNK*i),C)) / dU;
       //cout << "#main:N_cb[i]: " << i << " " << N_cb[i] << endl;
     }
