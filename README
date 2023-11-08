@@ -157,4 +157,26 @@ only Omega_{nu,0}h^2 varying.
 
   nu02 (Omega_{nu,0}h^2=0.002), switch_Nmunl=3:  The code runs to z=0 without
     needing to lower kThr.
- 
+
+================================================================================
+
+Citation: 
+
+If you use FlowsForTheMasses in an academic publication, please cite our paper:
+
+Chen, Upadhye, and Wong, JCAP 05:046 (2023), e-Print: arXiv:2210.16020
+
+bibtex format: 
+
+@article{Chen:2022cgw,
+    author = "Chen, Joe Zhiyu and Upadhye, Amol and Wong, Yvonne Y. Y.",
+    title = "{Flows for the masses: A multi-fluid non-linear perturbation theory for massive neutrinos}",
+    eprint = "2210.16020",
+    archivePrefix = "arXiv",
+    primaryClass = "astro-ph.CO",
+    doi = "10.1088/1475-7516/2023/05/046",
+    journal = "JCAP",
+    volume = "05",
+    pages = "046",
+    year = "2023"
+}
